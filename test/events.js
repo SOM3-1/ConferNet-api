@@ -33,13 +33,7 @@ const generateEventData = (index) => {
         organizerName: organizers[index % organizers.length].organizerName,
         contactEmail: `contact${index + 1}@techevents.com`,
         contactPhone: `+1-555-${9000 + index}`,
-        keynoteSpeakers: [
-            {
-                speakerId: `speaker${index + 1}`,
-                name: `Speaker ${index + 1}`,
-                bio: `An expert in AI and emerging technologies.`,
-                profilePicture: `https://example.com/speaker-${index + 1}.jpg`,
-            },
+        keynoteSpeakers: ['speaker2', "speaker1"
         ],
         sessions: [`session${index + 1}`, `session${index + 2}`],
         registrationRequired: true,

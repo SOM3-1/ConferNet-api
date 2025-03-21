@@ -55,16 +55,8 @@ const router = express.Router();
  *               keynoteSpeakers:
  *                 type: array
  *                 items:
- *                   type: object
- *                   properties:
- *                     speakerId:
- *                       type: string
- *                     name:
- *                       type: string
- *                     bio:
- *                       type: string
- *                     profilePicture:
- *                       type: string
+ *                   type: string
+ *                   description: userId of the keynote speaker
  *               sessions:
  *                 type: array
  *                 items:
