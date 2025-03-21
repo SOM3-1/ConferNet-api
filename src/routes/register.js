@@ -9,7 +9,7 @@ const router = express.Router();
  * /register:
  *   post:
  *     summary: Register a new user
- *     description: Adds a new user to Firestore, assigns them to a role, and updates the userRoles collection.
+ *     description: Adds a new user to Firestore, assigns them a role, and stores role-based info.
  *     requestBody:
  *       required: true
  *       content:
@@ -74,7 +74,7 @@ const router = express.Router();
  *                 example: "https://example.com/profile.jpg"
  *     responses:
  *       201:
- *         description: User registered successfully and added to userRoles.
+ *         description: User registered successfully.
  *         content:
  *           application/json:
  *             schema:
@@ -82,7 +82,7 @@ const router = express.Router();
  *               properties:
  *                 message:
  *                   type: string
- *                   example: "User registered successfully and added to userRoles."
+ *                   example: "User registered successfully."
  *                 user:
  *                   type: object
  *                   properties:
@@ -114,7 +114,11 @@ const router = express.Router();
  *                       type: array
  *                       items:
  *                         type: string
- *                     sessionsBooked:
+ *                     savedSessions:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                      savedEvents:
  *                       type: array
  *                       items:
  *                         type: string
@@ -135,46 +139,41 @@ router.post("/", async (req, res) => {
   try {
     const { userId, name, email, dob, role = 5, phoneNumber, organization, jobTitle, country, city, bio, profilePicture } = req.body;
 
-    if (!userId || !name || !email ||!dob) {
+    if (!userId || !name || !email || !dob) {
       return res.status(400).json({ error: "Missing required fields: userId, name, email, or dob" });
     }
 
     const userRef = db.collection("users").doc(userId);
-    
+
+    const userSnapshot = await userRef.get();
+    if (userSnapshot.exists) {
+      return res.status(400).json({ error: "User already exists" });
+    }
+
     const userData = {
       name,
       email,
-      dob: dob || null,
+      dob,
       role,
       phoneNumber: phoneNumber || null,
-      organization: organization || null,
-      jobTitle: jobTitle || null,
+      organization: role !== 4 ? organization || null : null,  
+      jobTitle: role !== 4 ? jobTitle || null : null, 
       country: country || null,
       city: city || null,
       bio: bio || null,
       profilePicture: profilePicture || null,
-      registeredEvents: [],
-      sessionsBooked: [],
+      registeredEvents: [],  
+      savedSessions: [],
       notificationsEnabled: true,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      savedEvents: []
     };
 
-    await userRef.set(userData, { merge: true });
-
-    const roleRef = db.collection("userRoles").doc(role.toString());
-
-    await roleRef.set(
-      {
-        users: {
-          [userId]: { name }
-        }
-      },
-      { merge: true }
-    );
+    await userRef.set(userData);
 
     res.status(201).json({
-      message: "User registered successfully and added to userRoles.",
+      message: "User registered successfully.",
       user: userData,
     });
   } catch (error) {

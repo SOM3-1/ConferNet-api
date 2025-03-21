@@ -2,9 +2,10 @@ const express = require("express");
 const { db } = require("../../firebaseConfig");
 
 const router = express.Router();
+
 /**
  * @swagger
- * /{roleId}:
+ * /users-by-roleid/role/{roleId}:
  *   get:
  *     summary: Retrieve users by role
  *     description: Fetches a list of users belonging to a specific role.
@@ -24,31 +25,54 @@ const router = express.Router();
  *               type: object
  *               properties:
  *                 users:
- *                   type: object
- *                   additionalProperties:
+ *                   type: array
+ *                   items:
  *                     type: object
  *                     properties:
+ *                       userId:
+ *                         type: string
+ *                         example: "user123"
  *                       name:
  *                         type: string
  *                         example: "John Doe"
+ *                       email:
+ *                         type: string
+ *                         example: "johndoe@example.com"
+ *                       profilePicture:
+ *                         type: string
+ *                         example: "https://example.com/profile.jpg"
+ *       400:
+ *         description: Invalid role ID.
  *       404:
- *         description: Role not found.
+ *         description: No users found for this role.
  *       500:
  *         description: Server error.
  */
-router.get("/:roleId", async (req, res) => {
+router.get("/role/:roleId", async (req, res) => {  
     try {
         const { roleId } = req.params;
-        const roleRef = db.collection("userRoles").doc(roleId);
-        const roleDoc = await roleRef.get();
 
-        if (!roleDoc.exists) {
-            return res.status(404).json({ error: "Role not found" });
+        const roleNumber = Number(roleId);
+        if (isNaN(roleNumber)) {
+            return res.status(400).json({ error: "Invalid role ID. Must be a number." });
         }
 
-        res.status(200).json({ users: roleDoc.data().users || {} });
+        const usersSnapshot = await db.collection("users").where("role", "==", roleNumber).get();
+
+        if (usersSnapshot.empty) {
+            return res.status(404).json({ error: "No users found for this role." });
+        }
+
+        const users = usersSnapshot.docs.map((doc) => ({
+            userId: doc.id,
+            name: doc.data().name,
+            email: doc.data().email,
+            profilePicture: doc.data().profilePicture || null,
+        }));
+
+        res.status(200).json({ users });
     } catch (error) {
-        console.error("Error fetching users by role:", error.message);
+        console.error("Error fetching users by role:", error.stack);
         res.status(500).json({ error: "Internal server error" });
     }
 });
