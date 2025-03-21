@@ -118,7 +118,7 @@ const router = express.Router();
  *                       type: array
  *                       items:
  *                         type: string
- *                      savedEvents:
+ *                     savedEvents:
  *                       type: array
  *                       items:
  *                         type: string
