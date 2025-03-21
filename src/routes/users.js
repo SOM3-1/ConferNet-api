@@ -313,4 +313,51 @@ router.get("/:userId/bookmarked-events", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /users/by-ids:
+ *   post:
+ *     summary: Get users by an array of userIds
+ *     description: Fetches user documents based on an array of user IDs.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               userIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       200:
+ *         description: List of users
+ *       400:
+ *         description: Missing or invalid userIds
+ *       500:
+ *         description: Server error
+ */
+router.post("/by-ids", async (req, res) => {
+  try {
+    const { userIds } = req.body;
+
+    if (!Array.isArray(userIds) || userIds.length === 0) {
+      return res.status(400).json({ error: "userIds array is required" });
+    }
+
+    const userPromises = userIds.map((id) => db.collection("users").doc(id).get());
+    const userDocs = await Promise.all(userPromises);
+
+    const users = userDocs
+      .filter((doc) => doc.exists)
+      .map((doc) => ({ id: doc.id, ...doc.data() }));
+
+    res.status(200).json({ users });
+  } catch (error) {
+    console.error("Error fetching users by IDs:", error.stack);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 module.exports = router;
