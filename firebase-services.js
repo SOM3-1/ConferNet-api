@@ -21,12 +21,14 @@ const usersRoutes = require("./src/routes/users");
 const usersByRolesRoutes = require("./src/routes/users-by-roles");
 const messagesRoutes =  require("./src/routes/messages");
 const eventsRoutes =  require("./src/routes/events");
+const uploadRoutes = require("./src/routes/uploads");
 
 app.use("/register", registerRoutes);
 app.use("/users", usersRoutes);
 app.use("/users-by-roleid", usersByRolesRoutes);
 app.use("/messages", messagesRoutes);
 app.use("/events", eventsRoutes);
+app.use("/uploads", uploadRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
