@@ -360,4 +360,135 @@ router.post("/by-ids", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /users/{userId}/join-event/{eventId}:
+ *   post:
+ *     summary: User joins an event
+ *     description: Adds the event ID to the user's registeredEvents array.
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: eventId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       201:
+ *         description: User joined event successfully.
+ *       400:
+ *         description: Already joined or missing data.
+ *       500:
+ *         description: Server error.
+ */
+router.post("/:userId/join-event/:eventId", async (req, res) => {
+  try {
+    const { userId, eventId } = req.params;
+
+    const userRef = db.collection("users").doc(userId);
+    const userDoc = await userRef.get();
+
+    if (!userDoc.exists) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const registeredEvents = userDoc.data().registeredEvents || [];
+    if (registeredEvents.includes(eventId)) {
+      return res.status(400).json({ error: "User already joined this event" });
+    }
+
+    await userRef.update({
+      registeredEvents: admin.firestore.FieldValue.arrayUnion(eventId),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    res.status(201).json({ message: "User joined the event successfully" });
+  } catch (error) {
+    console.error("Join event error:", error.stack);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/**
+ * @swagger
+ * /users/{userId}/leave-event/{eventId}:
+ *   delete:
+ *     summary: User leaves an event
+ *     description: Removes the event ID from the user's registeredEvents array.
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: eventId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User left the event successfully.
+ *       400:
+ *         description: Event not joined.
+ *       500:
+ *         description: Server error.
+ */
+router.delete("/:userId/leave-event/:eventId", async (req, res) => {
+  try {
+    const { userId, eventId } = req.params;
+
+    const userRef = db.collection("users").doc(userId);
+    const userDoc = await userRef.get();
+
+    if (!userDoc.exists) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const registeredEvents = userDoc.data().registeredEvents || [];
+    if (!registeredEvents.includes(eventId)) {
+      return res.status(400).json({ error: "User has not joined this event" });
+    }
+
+    await userRef.update({
+      registeredEvents: registeredEvents.filter(e => e !== eventId),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    res.status(200).json({ message: "User left the event successfully" });
+  } catch (error) {
+    console.error("Leave event error:", error.stack);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/:userId/registered-events", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const userRef = db.collection("users").doc(userId);
+    const userDoc = await userRef.get();
+
+    if (!userDoc.exists) return res.status(404).json({ error: "User not found" });
+
+    const registeredEvents = userDoc.data().registeredEvents || [];
+
+    const eventDocs = await Promise.all(
+      registeredEvents.map(eventId => db.collection("events").doc(eventId).get())
+    );
+
+    const events = eventDocs
+      .filter(doc => doc.exists)
+      .map(doc => ({ eventId: doc.id, ...doc.data() }));
+
+    res.status(200).json({ events });
+  } catch (error) {
+    console.error("Error getting registered events:", error.stack);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 module.exports = router;
