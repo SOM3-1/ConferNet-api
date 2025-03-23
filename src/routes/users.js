@@ -54,58 +54,6 @@ router.get("/", async (req, res) => {
 
 /**
  * @swagger
- * /users/{userId}:
- *   get:
- *     summary: Retrieve a specific user by ID
- *     description: Fetches the details of a user by their userId.
- *     parameters:
- *       - in: path
- *         name: userId
- *         required: true
- *         schema:
- *           type: string
- *         description: The unique ID of the user.
- *     responses:
- *       200:
- *         description: The user details.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 id:
- *                   type: string
- *                   description: The unique user ID.
- *                 name:
- *                   type: string
- *                   description: The name of the user.
- *                 email:
- *                   type: string
- *                   description: The email of the user.
- *       404:
- *         description: User not found.
- *       500:
- *         description: Server error.
- */
-router.get("/:userId", async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const userRef = db.collection("users").doc(userId);
-    const userDoc = await userRef.get();
-
-    if (!userDoc.exists) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    res.status(200).json({ id: userDoc.id, ...userDoc.data() });
-  } catch (error) {
-    console.error("Error fetching user:", error.message);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-/**
- * @swagger
  * /users/{userId}/bookmark/{sessionId}:
  *   post:
  *     summary: Bookmark a session
@@ -313,52 +261,6 @@ router.get("/:userId/bookmarked-events", async (req, res) => {
   }
 });
 
-/**
- * @swagger
- * /users/by-ids:
- *   post:
- *     summary: Get users by an array of userIds
- *     description: Fetches user documents based on an array of user IDs.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               userIds:
- *                 type: array
- *                 items:
- *                   type: string
- *     responses:
- *       200:
- *         description: List of users
- *       400:
- *         description: Missing or invalid userIds
- *       500:
- *         description: Server error
- */
-router.post("/by-ids", async (req, res) => {
-  try {
-    const { userIds } = req.body;
-
-    if (!Array.isArray(userIds) || userIds.length === 0) {
-      return res.status(400).json({ error: "userIds array is required" });
-    }
-
-    const userPromises = userIds.map((id) => db.collection("users").doc(id).get());
-    const userDocs = await Promise.all(userPromises);
-
-    const users = userDocs
-      .filter((doc) => doc.exists)
-      .map((doc) => ({ id: doc.id, ...doc.data() }));
-
-    res.status(200).json({ users });
-  } catch (error) {
-    console.error("Error fetching users by IDs:", error.stack);
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
 
 /**
  * @swagger
@@ -488,6 +390,105 @@ router.get("/:userId/registered-events", async (req, res) => {
   } catch (error) {
     console.error("Error getting registered events:", error.stack);
     res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/**
+ * @swagger
+ * /users/by-ids:
+ *   post:
+ *     summary: Get users by an array of userIds
+ *     description: Fetches user documents based on an array of user IDs.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               userIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       200:
+ *         description: List of users
+ *       400:
+ *         description: Missing or invalid userIds
+ *       500:
+ *         description: Server error
+ */
+router.post("/multiple-users/by-ids", async (req, res) => {
+  try {
+    const { userIds } = req.body;
+
+    if (!Array.isArray(userIds) || userIds.length === 0) {
+      return res.status(400).json({ error: "userIds array is required" });
+    }
+
+    const userPromises = userIds.map((id) => db.collection("users").doc(id).get());
+    const userDocs = await Promise.all(userPromises);
+
+    const users = userDocs
+      .filter((doc) => doc.exists)
+      .map((doc) => ({ id: doc.id, ...doc.data() }));
+
+    res.status(200).json({ users });
+  } catch (error) {
+    console.error("Error fetching users by IDs:", error.stack);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/**
+ * @swagger
+ * /users/{userId}:
+ *   get:
+ *     summary: Retrieve a specific user by ID
+ *     description: Fetches the details of a user by their userId.
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique ID of the user.
+ *     responses:
+ *       200:
+ *         description: The user details.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                   description: The unique user ID.
+ *                 name:
+ *                   type: string
+ *                   description: The name of the user.
+ *                 email:
+ *                   type: string
+ *                   description: The email of the user.
+ *       404:
+ *         description: User not found.
+ *       500:
+ *         description: Server error.
+ */
+router.get("/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const userRef = db.collection("users").doc(userId);
+    const userDoc = await userRef.get();
+
+    if (!userDoc.exists) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    res.status(200).json({ id: userDoc.id, ...userDoc.data() });
+  } catch (error) {
+    console.error("Error fetching user:", error.message);
+    res.status(500).json({ error: error.message });
   }
 });
 
