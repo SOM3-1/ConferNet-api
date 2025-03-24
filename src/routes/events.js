@@ -57,6 +57,10 @@ const router = express.Router();
  *                 items:
  *                   type: string
  *                   description: userId of the keynote speaker
+ *               moderators:
+ *                 type: array
+ *                 items:
+ *                   type: string
  *               sessions:
  *                 type: array
  *                 items:
@@ -69,9 +73,28 @@ const router = express.Router();
  *                 type: string
  *               paymentMethods:
  *                 type: string
+ *               maxAttendees:
+ *                 type: number
+ *               registrationDeadline:
+ *                 type: string
+ *                 format: date
+ *               isOnline:
+ *                 type: boolean
+ *               streamUrl:
+ *                 type: string
+ *               qrCodeUrl:
+ *                 type: string
+ *               posterUrl:
+ *                 type: string
+ *               tags:
+ *                 type: array
  *                 items:
  *                   type: string
- *               maxAttendees:
+ *               announcement:
+ *                 type: string
+ *               isActive:
+ *                 type: boolean
+ *               maxSpeakers:
  *                 type: number
  *     responses:
  *       201:
@@ -94,6 +117,7 @@ router.post("/", async (req, res) => {
             startDate: admin.firestore.Timestamp.fromDate(new Date(startDate)),
             endDate: admin.firestore.Timestamp.fromDate(new Date(endDate)),
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            lastUpdated: admin.firestore.FieldValue.serverTimestamp()
         };
 
         const eventRef = await db.collection("events").add(eventData);
@@ -107,11 +131,11 @@ router.post("/", async (req, res) => {
 
 /**
  * @swagger
- * /events/{eventId}:
+ * /events/singleEvent/{eventId}:
  *   get:
  *     summary: Retrieve a single event by ID
  */
-router.get("/:eventId", async (req, res) => {
+router.get("/singleEvent/:eventId", async (req, res) => {
     try {
         const { eventId } = req.params;
         const eventRef = db.collection("events").doc(eventId);
@@ -173,11 +197,11 @@ router.get("/upcoming", async (req, res) => {
 
 /**
  * @swagger
- * /events/{eventId}:
+ * /events/singleEvent/{eventId}:
  *   put:
  *     summary: Update an existing event
  */
-router.put("/:eventId", async (req, res) => {
+router.put("/singleEvent/:eventId", async (req, res) => {
     try {
         const { eventId } = req.params;
 
@@ -203,11 +227,11 @@ router.put("/:eventId", async (req, res) => {
 
 /**
  * @swagger
- * /events/{eventId}:
+ * /events/singleEvent/{eventId}:
  *   delete:
  *     summary: Delete an event (Cascade delete sessions & attendees)
  */
-router.delete("/:eventId", async (req, res) => {
+router.delete("/singleEvent/:eventId", async (req, res) => {
     try {
         const { eventId } = req.params;
         const eventRef = db.collection("events").doc(eventId);
