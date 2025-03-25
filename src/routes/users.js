@@ -41,8 +41,8 @@ router.get("/", async (req, res) => {
     }
 
     const users = usersSnapshot.docs.map(doc => ({
-      id: doc.id, 
-      ...doc.data() 
+      id: doc.id,
+      ...doc.data()
     }));
 
     res.status(200).json(users);
@@ -60,30 +60,30 @@ router.get("/", async (req, res) => {
  *     description: Adds a session to the user's savedSessions array.
  */
 router.post("/:userId/bookmark/:sessionId", async (req, res) => {
-    try {
-        const { userId, sessionId } = req.params;
+  try {
+    const { userId, sessionId } = req.params;
 
-        const userRef = db.collection("users").doc(userId);
-        const userDoc = await userRef.get();
+    const userRef = db.collection("users").doc(userId);
+    const userDoc = await userRef.get();
 
-        if (!userDoc.exists) {
-            return res.status(404).json({ error: "User not found" });
-        }
-
-        const savedSessions = userDoc.data().savedSessions || [];
-        if (savedSessions.includes(sessionId)) {
-            return res.status(400).json({ error: "Session already bookmarked" });
-        }
-
-        await userRef.update({
-          savedSessions: admin.firestore.FieldValue.arrayUnion(sessionId)
-      });      
-
-        res.status(201).json({ message: "Session bookmarked successfully." });
-    } catch (error) {
-        console.error("Error bookmarking session:", error.stack);
-        res.status(500).json({ error: "Internal server error" });
+    if (!userDoc.exists) {
+      return res.status(404).json({ error: "User not found" });
     }
+
+    const savedSessions = userDoc.data().savedSessions || [];
+    if (savedSessions.includes(sessionId)) {
+      return res.status(400).json({ error: "Session already bookmarked" });
+    }
+
+    await userRef.update({
+      savedSessions: admin.firestore.FieldValue.arrayUnion(sessionId)
+    });
+
+    res.status(201).json({ message: "Session bookmarked successfully." });
+  } catch (error) {
+    console.error("Error bookmarking session:", error.stack);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 /**
@@ -93,30 +93,30 @@ router.post("/:userId/bookmark/:sessionId", async (req, res) => {
  *     summary: Remove a bookmarked session
  */
 router.delete("/:userId/bookmark/:sessionId", async (req, res) => {
-    try {
-        const { userId, sessionId } = req.params;
+  try {
+    const { userId, sessionId } = req.params;
 
-        const userRef = db.collection("users").doc(userId);
-        const userDoc = await userRef.get();
+    const userRef = db.collection("users").doc(userId);
+    const userDoc = await userRef.get();
 
-        if (!userDoc.exists) {
-            return res.status(404).json({ error: "User not found" });
-        }
-
-        const savedSessions = userDoc.data().savedSessions || [];
-        if (!savedSessions.includes(sessionId)) {
-            return res.status(404).json({ error: "Session not bookmarked" });
-        }
-
-        await userRef.update({
-            savedSessions: savedSessions.filter(s => s !== sessionId)
-        });
-
-        res.status(200).json({ message: "Session removed from bookmarks." });
-    } catch (error) {
-        console.error("Error removing bookmarked session:", error.stack);
-        res.status(500).json({ error: "Internal server error" });
+    if (!userDoc.exists) {
+      return res.status(404).json({ error: "User not found" });
     }
+
+    const savedSessions = userDoc.data().savedSessions || [];
+    if (!savedSessions.includes(sessionId)) {
+      return res.status(404).json({ error: "Session not bookmarked" });
+    }
+
+    await userRef.update({
+      savedSessions: savedSessions.filter(s => s !== sessionId)
+    });
+
+    res.status(200).json({ message: "Session removed from bookmarks." });
+  } catch (error) {
+    console.error("Error removing bookmarked session:", error.stack);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 /**
@@ -126,33 +126,33 @@ router.delete("/:userId/bookmark/:sessionId", async (req, res) => {
  *     summary: Retrieve all bookmarked sessions
  */
 router.get("/:userId/bookmarks", async (req, res) => {
-    try {
-        const { userId } = req.params;
+  try {
+    const { userId } = req.params;
 
-        const userRef = db.collection("users").doc(userId);
-        const userDoc = await userRef.get();
+    const userRef = db.collection("users").doc(userId);
+    const userDoc = await userRef.get();
 
-        if (!userDoc.exists) {
-            return res.status(404).json({ error: "User not found" });
-        }
-
-        const savedSessions = userDoc.data().savedSessions || [];
-        if (savedSessions.length === 0) {
-            return res.status(200).json({ sessions: [] });
-        }
-
-        const sessionPromises = savedSessions.map(sessionId => db.collection("sessions").doc(sessionId).get());
-        const sessionDocs = await Promise.all(sessionPromises);
-
-        const sessions = sessionDocs
-            .filter(doc => doc.exists)
-            .map(doc => ({ sessionId: doc.id, ...doc.data() }));
-
-        res.status(200).json({ sessions });
-    } catch (error) {
-        console.error("Error retrieving bookmarked sessions:", error.stack);
-        res.status(500).json({ error: "Internal server error" });
+    if (!userDoc.exists) {
+      return res.status(404).json({ error: "User not found" });
     }
+
+    const savedSessions = userDoc.data().savedSessions || [];
+    if (savedSessions.length === 0) {
+      return res.status(200).json({ sessions: [] });
+    }
+
+    const sessionPromises = savedSessions.map(sessionId => db.collection("sessions").doc(sessionId).get());
+    const sessionDocs = await Promise.all(sessionPromises);
+
+    const sessions = sessionDocs
+      .filter(doc => doc.exists)
+      .map(doc => ({ sessionId: doc.id, ...doc.data() }));
+
+    res.status(200).json({ sessions });
+  } catch (error) {
+    console.error("Error retrieving bookmarked sessions:", error.stack);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 router.delete("/", async (req, res) => {
@@ -179,85 +179,85 @@ router.delete("/", async (req, res) => {
 
 router.post("/:userId/bookmark-event/:eventId", async (req, res) => {
   try {
-      const { userId, eventId } = req.params;
+    const { userId, eventId } = req.params;
 
-      const userRef = db.collection("users").doc(userId);
-      const userDoc = await userRef.get();
+    const userRef = db.collection("users").doc(userId);
+    const userDoc = await userRef.get();
 
-      if (!userDoc.exists) {
-          return res.status(404).json({ error: "User not found" });
-      }
+    if (!userDoc.exists) {
+      return res.status(404).json({ error: "User not found" });
+    }
 
-      const savedEvents = userDoc.data().savedEvents || [];
-      if (savedEvents.includes(eventId)) {
-          return res.status(400).json({ error: "Event already bookmarked" });
-      }
+    const savedEvents = userDoc.data().savedEvents || [];
+    if (savedEvents.includes(eventId)) {
+      return res.status(400).json({ error: "Event already bookmarked" });
+    }
 
-      await userRef.update({
-        savedEvents: admin.firestore.FieldValue.arrayUnion(eventId)
+    await userRef.update({
+      savedEvents: admin.firestore.FieldValue.arrayUnion(eventId)
     });
 
-      res.status(201).json({ message: "Event bookmarked successfully." });
+    res.status(201).json({ message: "Event bookmarked successfully." });
   } catch (error) {
-      console.error("Error bookmarking event:", error.stack);
-      res.status(500).json({ error: "Internal server error" });
+    console.error("Error bookmarking event:", error.stack);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
 router.delete("/:userId/bookmark-event/:eventId", async (req, res) => {
   try {
-      const { userId, eventId } = req.params;
+    const { userId, eventId } = req.params;
 
-      const userRef = db.collection("users").doc(userId);
-      const userDoc = await userRef.get();
+    const userRef = db.collection("users").doc(userId);
+    const userDoc = await userRef.get();
 
-      if (!userDoc.exists) {
-          return res.status(404).json({ error: "User not found" });
-      }
+    if (!userDoc.exists) {
+      return res.status(404).json({ error: "User not found" });
+    }
 
-      const savedEvents = userDoc.data().savedEvents || [];
-      if (!savedEvents.includes(eventId)) {
-          return res.status(404).json({ error: "Event not bookmarked" });
-      }
+    const savedEvents = userDoc.data().savedEvents || [];
+    if (!savedEvents.includes(eventId)) {
+      return res.status(404).json({ error: "Event not bookmarked" });
+    }
 
-      await userRef.update({
-          savedEvents: savedEvents.filter(e => e !== eventId)
-      });
+    await userRef.update({
+      savedEvents: savedEvents.filter(e => e !== eventId)
+    });
 
-      res.status(200).json({ message: "Event removed from bookmarks." });
+    res.status(200).json({ message: "Event removed from bookmarks." });
   } catch (error) {
-      console.error("Error removing bookmarked event:", error.stack);
-      res.status(500).json({ error: "Internal server error" });
+    console.error("Error removing bookmarked event:", error.stack);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
 router.get("/:userId/bookmarked-events", async (req, res) => {
   try {
-      const { userId } = req.params;
+    const { userId } = req.params;
 
-      const userRef = db.collection("users").doc(userId);
-      const userDoc = await userRef.get();
+    const userRef = db.collection("users").doc(userId);
+    const userDoc = await userRef.get();
 
-      if (!userDoc.exists) {
-          return res.status(404).json({ error: "User not found" });
-      }
+    if (!userDoc.exists) {
+      return res.status(404).json({ error: "User not found" });
+    }
 
-      const savedEvents = userDoc.data().savedEvents || [];
-      if (savedEvents.length === 0) {
-          return res.status(200).json({ events: [] });
-      }
+    const savedEvents = userDoc.data().savedEvents || [];
+    if (savedEvents.length === 0) {
+      return res.status(200).json({ events: [] });
+    }
 
-      const eventPromises = savedEvents.map(eventId => db.collection("events").doc(eventId).get());
-      const eventDocs = await Promise.all(eventPromises);
+    const eventPromises = savedEvents.map(eventId => db.collection("events").doc(eventId).get());
+    const eventDocs = await Promise.all(eventPromises);
 
-      const events = eventDocs
-          .filter(doc => doc.exists)
-          .map(doc => ({ eventId: doc.id, ...doc.data() }));
+    const events = eventDocs
+      .filter(doc => doc.exists)
+      .map(doc => ({ eventId: doc.id, ...doc.data() }));
 
-      res.status(200).json({ events });
+    res.status(200).json({ events });
   } catch (error) {
-      console.error("Error retrieving bookmarked events:", error.stack);
-      res.status(500).json({ error: "Internal server error" });
+    console.error("Error retrieving bookmarked events:", error.stack);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -307,6 +307,12 @@ router.post("/:userId/join-event/:eventId", async (req, res) => {
       registeredEvents: admin.firestore.FieldValue.arrayUnion(eventId),
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     });
+    await db.collection("events")
+      .doc(eventId)
+      .collection("attendees")
+      .doc(userId)
+      .set({ userId, joinedAt: admin.firestore.FieldValue.serverTimestamp() });
+
 
     res.status(201).json({ message: "User joined the event successfully" });
   } catch (error) {
@@ -360,6 +366,13 @@ router.delete("/:userId/leave-event/:eventId", async (req, res) => {
       registeredEvents: registeredEvents.filter(e => e !== eventId),
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     });
+
+    await db.collection("events")
+      .doc(eventId)
+      .collection("attendees")
+      .doc(userId)
+      .delete();
+
 
     res.status(200).json({ message: "User left the event successfully" });
   } catch (error) {

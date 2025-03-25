@@ -269,5 +269,29 @@ router.delete("/singleEvent/:eventId", async (req, res) => {
         res.status(500).json({ error: "Internal server error" });
     }
 });
+/**
+ * @swagger
+ * /events/{eventId}/attendees:
+ *   get:
+ *     summary: Get list of attendees (userIds) for an event
+ */
+router.get("/events/:eventId/attendees", async (req, res) => {
+    try {
+      const { eventId } = req.params;
+  
+      const snapshot = await db.collection("events")
+        .doc(eventId)
+        .collection("attendees")
+        .get();
+  
+      const userIds = snapshot.docs.map(doc => doc.id); // or doc.data().userId
+  
+      res.status(200).json({ userIds });
+    } catch (error) {
+      console.error("Error fetching attendees:", error.stack);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
 
 module.exports = router;
