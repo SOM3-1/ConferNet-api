@@ -205,20 +205,32 @@ router.put("/singleEvent/:eventId", async (req, res) => {
     try {
         const { eventId } = req.params;
 
-        if (!Object.keys(req.body).length) {
-            return res.status(400).json({ error: "No fields to update" });
-        }
+    if (!Object.keys(req.body).length) {
+      return res.status(400).json({ error: "No fields to update" });
+    }
 
-        const eventRef = db.collection("events").doc(eventId);
-        const eventDoc = await eventRef.get();
+    const eventRef = db.collection("events").doc(eventId);
+    const eventDoc = await eventRef.get();
 
-        if (!eventDoc.exists) {
-            return res.status(404).json({ error: "Event not found" });
-        }
+    if (!eventDoc.exists) {
+      return res.status(404).json({ error: "Event not found" });
+    }
 
-        await eventRef.update({ ...req.body, lastUpdated: admin.firestore.FieldValue.serverTimestamp() });
+    const updates = { ...req.body };
 
-        res.status(200).json({ message: "Event updated successfully" });
+    if (updates.startDate) {
+      updates.startDate = admin.firestore.Timestamp.fromDate(new Date(updates.startDate));
+    }
+    if (updates.endDate) {
+      updates.endDate = admin.firestore.Timestamp.fromDate(new Date(updates.endDate));
+    }
+
+    updates.lastUpdated = admin.firestore.FieldValue.serverTimestamp();
+
+    await eventRef.update(updates);
+
+    res.status(200).json({ message: "Event updated successfully" });
+
     } catch (error) {
         console.error("Error updating event:", error.stack);
         res.status(500).json({ error: "Internal server error" });
