@@ -1,6 +1,8 @@
 const express = require("express");
 const { db } = require("../../firebaseConfig");
 const admin = require("firebase-admin");
+const { sendRoleEmails } = require("./../helpers/sendRoleEmails");
+const { notifyEventUsers } = require("./../helpers/eventNotificationHelper");
 
 const router = express.Router();
 
@@ -121,6 +123,13 @@ router.post("/", async (req, res) => {
         };
 
         const eventRef = await db.collection("events").add(eventData);
+        try {
+            await sendRoleEmails(req.body.keynoteSpeakers, "Keynote Speaker", eventData);
+            await sendRoleEmails(req.body.moderators, "Moderator", eventData);
+        } catch (emailError) {
+            console.error("Email sending failed:", emailError.message);
+        }
+
 
         res.status(201).json({ message: "Event created successfully", eventId: eventRef.id });
     } catch (error) {
@@ -205,31 +214,37 @@ router.put("/singleEvent/:eventId", async (req, res) => {
     try {
         const { eventId } = req.params;
 
-    if (!Object.keys(req.body).length) {
-      return res.status(400).json({ error: "No fields to update" });
-    }
+        if (!Object.keys(req.body).length) {
+            return res.status(400).json({ error: "No fields to update" });
+        }
 
-    const eventRef = db.collection("events").doc(eventId);
-    const eventDoc = await eventRef.get();
+        const eventRef = db.collection("events").doc(eventId);
+        const eventDoc = await eventRef.get();
 
-    if (!eventDoc.exists) {
-      return res.status(404).json({ error: "Event not found" });
-    }
+        if (!eventDoc.exists) {
+            return res.status(404).json({ error: "Event not found" });
+        }
 
-    const updates = { ...req.body };
+        const updates = { ...req.body };
 
-    if (updates.startDate) {
-      updates.startDate = admin.firestore.Timestamp.fromDate(new Date(updates.startDate));
-    }
-    if (updates.endDate) {
-      updates.endDate = admin.firestore.Timestamp.fromDate(new Date(updates.endDate));
-    }
+        if (updates.startDate) {
+            updates.startDate = admin.firestore.Timestamp.fromDate(new Date(updates.startDate));
+        }
+        if (updates.endDate) {
+            updates.endDate = admin.firestore.Timestamp.fromDate(new Date(updates.endDate));
+        }
 
-    updates.lastUpdated = admin.firestore.FieldValue.serverTimestamp();
+        updates.lastUpdated = admin.firestore.FieldValue.serverTimestamp();
 
-    await eventRef.update(updates);
+        await eventRef.update(updates);
 
-    res.status(200).json({ message: "Event updated successfully" });
+        try {
+            await notifyEventUsers(eventId, { ...eventDoc.data(), ...updates }, "updated");
+        }
+        catch (e) {
+            console.error("Failed to send update notifications:", e.message);
+        }
+        res.status(200).json({ message: "Event updated successfully" });
 
     } catch (error) {
         console.error("Error updating event:", error.stack);
@@ -263,6 +278,13 @@ router.delete("/singleEvent/:eventId", async (req, res) => {
         batch.delete(eventRef);
         await batch.commit();
 
+        try {
+            await notifyEventUsers(eventId, eventDoc.data(), "cancelled");
+        }
+        catch (e) {
+            console.error("Failed to send update notifications:", e.message);
+        }
+
         res.status(200).json({ message: "Event and related data deleted successfully" });
     } catch (error) {
         console.error("Error deleting event:", error.stack);
@@ -277,21 +299,21 @@ router.delete("/singleEvent/:eventId", async (req, res) => {
  */
 router.get("/events/:eventId/attendees", async (req, res) => {
     try {
-      const { eventId } = req.params;
-  
-      const snapshot = await db.collection("events")
-        .doc(eventId)
-        .collection("attendees")
-        .get();
-  
-      const userIds = snapshot.docs.map(doc => doc.id); // or doc.data().userId
-  
-      res.status(200).json({ userIds });
+        const { eventId } = req.params;
+
+        const snapshot = await db.collection("events")
+            .doc(eventId)
+            .collection("attendees")
+            .get();
+
+        const userIds = snapshot.docs.map(doc => doc.id);
+
+        res.status(200).json({ userIds });
     } catch (error) {
-      console.error("Error fetching attendees:", error.stack);
-      res.status(500).json({ error: "Internal server error" });
+        console.error("Error fetching attendees:", error.stack);
+        res.status(500).json({ error: "Internal server error" });
     }
-  });
-  
+});
+
 
 module.exports = router;
