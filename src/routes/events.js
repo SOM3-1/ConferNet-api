@@ -315,5 +315,69 @@ router.get("/events/:eventId/attendees", async (req, res) => {
     }
 });
 
+router.post("/:eventId/comments", async (req, res) => {
+    const { eventId } = req.params;
+    const { userId, comment } = req.body;
+
+    if (!userId || !comment) {
+        return res.status(400).json({ error: "userId and comment are required" });
+    }
+
+    try {
+        const userRef = db.collection("users").doc(userId);
+        const userDoc = await userRef.get();
+
+        if (!userDoc.exists) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        const userName = userDoc.data().name || "Anonymous";
+
+        await db.collection("events").doc(eventId).collection("comments").add({
+            userId,
+            name: userName,
+            comment,
+            timestamp: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+        res.status(201).json({ message: "Comment added" });
+    } catch (err) {
+        console.error("Error adding comment:", err.stack);
+        res.status(500).json({ error: "Internal server error" });
+    }
+});
+
+
+router.get("/:eventId/comments", async (req, res) => {
+    const snapshot = await db.collection("events").doc(req.params.eventId).collection("comments").orderBy("timestamp", "asc").get();
+    const comments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.status(200).json({ comments });
+});
+
+router.post("/:eventId/ratings", async (req, res) => {
+    const { userId, rating } = req.body;
+    const { eventId } = req.params;
+
+    if (!userId || !rating) return res.status(400).json({ error: "userId and rating required" });
+
+    const ratingRef = db.collection("events").doc(eventId).collection("ratings").doc(userId);
+    const existing = await ratingRef.get();
+    if (existing.exists) return res.status(400).json({ error: "User already rated this event" });
+
+    await ratingRef.set({
+        rating,
+        timestamp: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    res.status(201).json({ message: "Rating submitted" });
+});
+
+router.get("/:eventId/ratings", async (req, res) => {
+    const snapshot = await db.collection("events").doc(req.params.eventId).collection("ratings").get();
+    const ratings = snapshot.docs.map(doc => doc.data().rating);
+    const avg = ratings.length ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0;
+
+    res.status(200).json({ averageRating: avg.toFixed(1), totalRatings: ratings.length });
+});
 
 module.exports = router;
